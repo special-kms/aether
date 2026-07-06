@@ -1,0 +1,137 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.17.11'
+    id 'maven-publish'
+}
+
+version = (findProperty('mod_version') ?: findProperty('typicalfarmingmacro_loader_version') ?: '0.0.0').toString()
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    include(implementation("io.netty:netty-handler-proxy:4.1.82.Final"))
+    include(implementation("io.netty:netty-codec-socks:4.1.82.Final"))
+
+    def lwjglVersion = '3.4.1'
+    implementation "org.lwjgl:lwjgl-nanovg:${lwjglVersion}"
+    include "org.lwjgl:lwjgl-nanovg:${lwjglVersion}"
+    ['windows', 'linux', 'macos', 'macos-arm64'].each { platform ->
+        implementation "org.lwjgl:lwjgl-nanovg:${lwjglVersion}:natives-${platform}"
+        include "org.lwjgl:lwjgl-nanovg:${lwjglVersion}:natives-${platform}"
+    }
+
+    implementation "com.googlecode.soundlibs:mp3spi:1.9.5.4"
+    implementation "com.googlecode.soundlibs:jlayer:1.0.1.4"
+    implementation "com.googlecode.soundlibs:tritonus-share:0.3.7.4"
+    implementation "net.java.dev.jna:jna:5.17.0"
+    implementation "net.java.dev.jna:jna-platform:5.17.0"
+    include "com.googlecode.soundlibs:mp3spi:1.9.5.4"
+    include "com.googlecode.soundlibs:jlayer:1.0.1.4"
+    include "com.googlecode.soundlibs:tritonus-share:0.3.7.4"
+    include "net.java.dev.jna:jna:5.17.0"
+    include "net.java.dev.jna:jna-platform:5.17.0"
+}
+
+def typicalfarmingmacroTranslationRepoRawUrl = providers.gradleProperty('typicalfarmingmacroTranslationRepoRawUrl')
+        .orElse(providers.environmentVariable('TFM_TRANSLATION_REPO_RAW_URL'))
+def typicalfarmingmacroTranslationLocales = providers.gradleProperty('typicalfarmingmacroTranslationLocales')
+        .orElse(providers.environmentVariable('TFM_TRANSLATION_LOCALES'))
+def generatedTfmLangDir = layout.buildDirectory.dir('generated/typicalfarmingmacro-lang')
+
+tasks.register('fetchTfmLanguagePacks') {
+    group = 'resources'
+    description = 'Fetches optional Tfm language JSON files for inclusion in the mod jar.'
+
+    inputs.property('typicalfarmingmacroTranslationRepoRawUrl', typicalfarmingmacroTranslationRepoRawUrl.orNull ?: '')
+    inputs.property('typicalfarmingmacroTranslationLocales', typicalfarmingmacroTranslationLocales.orNull ?: '')
+    outputs.dir(generatedTfmLangDir)
+
+    doLast {
+        File outputRoot = generatedTfmLangDir.get().asFile
+        File langDir = new File(outputRoot, 'assets/typicalfarmingmacro/lang')
+        if (outputRoot.exists()) {
+            outputRoot.deleteDir()
+        }
+        langDir.mkdirs()
+
+        String rawBaseUrl = (typicalfarmingmacroTranslationRepoRawUrl.orNull ?: '').trim()
+        String rawLocales = (typicalfarmingmacroTranslationLocales.orNull ?: '').trim()
+        if (rawBaseUrl.isEmpty() || rawLocales.isEmpty()) {
+            logger.lifecycle('Skipping Tfm language pack fetch; set -PtypicalfarmingmacroTranslationRepoRawUrl and -PtypicalfarmingmacroTranslationLocales to enable it.')
+            return
+        }
+
+        String normalizedBaseUrl = rawBaseUrl.endsWith('/') ? rawBaseUrl : rawBaseUrl + '/'
+        def jsonSlurper = new groovy.json.JsonSlurper()
+        rawLocales.split(',')
+                .collect { it.trim() }
+                .findAll { !it.isEmpty() }
+                .unique()
+                .each { locale ->
+                    URL url = new URL(normalizedBaseUrl + locale + '.json')
+                    File target = new File(langDir, locale + '.json')
+                    logger.lifecycle("Fetching Tfm language pack ${locale} from ${url}")
+                    String text
+                    try {
+                        text = url.getText('UTF-8')
+                        if (text.startsWith('\uFEFF')) {
+                            text = text.substring(1)
+                        }
+                        def parsed = jsonSlurper.parseText(text)
+                        if (!(parsed instanceof Map)) {
+                            throw new GradleException("Language pack ${locale} must be a JSON object.")
+                        }
+                    } catch (Exception ex) {
+                        throw new GradleException("Failed to fetch or parse Tfm language pack ${locale} from ${url}: ${ex.message}", ex)
+                    }
+
+                    target.setText(groovy.json.JsonOutput.prettyPrint(text), 'UTF-8')
+                }
+    }
+}
+
+processResources {
+    dependsOn tasks.named('fetchTfmLanguagePacks')
+
+    inputs.property 'version', project.version
+    inputs.property 'minecraft_version', project.minecraft_version
+    inputs.property 'loader_version', project.loader_version
+
+    from(generatedTfmLangDir)
+
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version,
+                'minecraft_version': project.minecraft_version,
+                'loader_version': project.loader_version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+    from('LICENSE') {
+        rename { "${it}_${project.archives_base_name}" }
+    }
+}
+
+if (file('local.gradle').exists()) {
+    apply from: 'local.gradle'
+}
