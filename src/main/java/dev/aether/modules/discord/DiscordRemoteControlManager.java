@@ -1,5 +1,6 @@
 package dev.aether.modules.discord;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
@@ -310,8 +311,20 @@ public final class DiscordRemoteControlManager implements WebSocket.Listener {
     }
 
     private void postText(String text) {
+        postEmbed("Remote Control", text, 5814783);
+    }
+
+    private void postEmbed(String title, String description, int color) {
+        JsonObject embed = new JsonObject();
+        embed.addProperty("title", title);
+        embed.addProperty("description", description);
+        embed.addProperty("color", color);
+
+        JsonArray embeds = new JsonArray();
+        embeds.add(embed);
+
         JsonObject body = new JsonObject();
-        body.addProperty("content", text);
+        body.add("embeds", embeds);
         sendAsync(request("/channels/" + config.channelId() + "/messages")
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString())));
@@ -329,7 +342,22 @@ public final class DiscordRemoteControlManager implements WebSocket.Listener {
 
         String boundary = "Aether" + System.currentTimeMillis();
         JsonObject payload = new JsonObject();
-        payload.addProperty("content", joinLines(content, title));
+        if (content != null && !content.isBlank()) {
+            payload.addProperty("content", content);
+        }
+
+        JsonObject embedImage = new JsonObject();
+        embedImage.addProperty("url", "attachment://status.png");
+
+        JsonObject embed = new JsonObject();
+        embed.addProperty("title", "Status Update");
+        embed.addProperty("description", title == null ? "Remote control status update." : title);
+        embed.addProperty("color", 5814783);
+        embed.add("image", embedImage);
+
+        JsonArray embeds = new JsonArray();
+        embeds.add(embed);
+        payload.add("embeds", embeds);
 
         sendAsync(request("/channels/" + channelId + "/messages")
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
@@ -434,16 +462,6 @@ public final class DiscordRemoteControlManager implements WebSocket.Listener {
     private static int firstSpaceOrEnd(String value) {
         int index = value.indexOf(' ');
         return index < 0 ? value.length() : index;
-    }
-
-    private static String joinLines(String first, String second) {
-        if (first == null || first.isBlank()) {
-            return second == null ? "" : second;
-        }
-        if (second == null || second.isBlank()) {
-            return first;
-        }
-        return first + "\n" + second;
     }
 
     private static void sleep(long millis) {
