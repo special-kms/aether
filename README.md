@@ -29,4 +29,6 @@
 5. launch minecraft (make sure you're on the fabric profile).
 
 > `/aether` opens the GUI.........
+> 
+> https://discord.com/invite/BZxsfAcYYW
 ---
