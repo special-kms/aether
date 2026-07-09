@@ -7,7 +7,7 @@
 <p align="center">
   hypixel skyblock farming qol mod for <b>26.1.2</b>
 </p>
-p>
+
 
 > greatest open source farming qol since farm helper!
 
@@ -15,12 +15,9 @@ p>
 
 ## features
 
-- **dungeon qol** - secrets, doors, keys, terminal hitboxes, puzzle solvers, run splits & funnymap.
-- **f7/m7 qol** - auto term & term solver/gui, melody helper, maxor crystal heper, terminal hitboxes, tick timer & mask helper.
-- **sb qol** - party commands, wardrobe binds, item protection, custom chat, hotbar keybinds & tooltip pricing.
-- **visuals** - custom scoreboard, item chams, animation, dark mode, visual hiders, & menu background.
-- **misc qol** — sprinting, camera, inv search, block overlays, tooltips & sounds.
-
+- **farming qol** - auto farming, pest destroyer, auto pest exchange, auto sprayanator
+- **visual** - nick hider, purse spoofer, sawdust spoofer
+- **failsafes** - too many failsafes to list
 ---
 
 ## how to install
