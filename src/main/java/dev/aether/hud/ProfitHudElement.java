@@ -95,7 +95,8 @@ public class ProfitHudElement extends HudElement {
         return switch (mode) {
             case "lifetime" -> AetherConfig.SHOW_LIFETIME_HUD.get();
             case "daily"    -> AetherConfig.SHOW_DAILY_HUD.get();
-            default         -> AetherConfig.SHOW_SESSION_PROFIT_HUD.get();
+            default         -> AetherConfig.SHOW_SESSION_PROFIT_HUD.get()
+                    && MacroStateManager.isMacroRunning();
         };
     }
     @Override public String  getName()       { return title(); }
