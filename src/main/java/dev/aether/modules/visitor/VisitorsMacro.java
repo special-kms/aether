@@ -470,9 +470,7 @@ public class VisitorsMacro {
             }
             String normalizedAccepted = normalizeVisitorName(rawName);
 
-            return normalizedAccepted.equals(normalizedTarget)
-                    || normalizedAccepted.startsWith(normalizedTarget)
-                    || normalizedTarget.startsWith(normalizedAccepted);
+            return normalizedAccepted.equals(normalizedTarget);
         }, timeoutMs);
     }
 
@@ -484,9 +482,7 @@ public class VisitorsMacro {
             boolean stillInTab = false;
             for (String tabName : getVisitorNamesFromTab(client)) {
                 String normalizedTab = normalizeVisitorName(tabName);
-                if (normalizedTab.equals(normalizedTarget)
-                        || normalizedTab.startsWith(normalizedTarget)
-                        || normalizedTarget.startsWith(normalizedTab)) {
+                if (normalizedTab.equals(normalizedTarget)) {
                     stillInTab = true;
                     break;
                 }
@@ -520,9 +516,9 @@ public class VisitorsMacro {
 
         for (String name : visitorNames) {
             boolean isignored = false;
-            String cleanName = name.toLowerCase();
+            String cleanName = normalizeVisitorName(name);
             for (String bl : ignore) {
-                if (cleanName.contains(bl.toLowerCase())) {
+                if (cleanName.equals(normalizeVisitorName(bl))) {
                     msg(client, "\u00A7eSkipping ignored visitor: \u00A7c" + name);
                     isignored = true;
                     break;
@@ -537,9 +533,9 @@ public class VisitorsMacro {
     }
 
     private static boolean isRejectedVisitor(String name) {
-        String cleanName = stripColors(name).toLowerCase();
+        String cleanName = normalizeVisitorName(name);
         for (String rej : AetherConfig.VISITOR_REJECT.get()) {
-            if (cleanName.contains(rej.toLowerCase())) {
+            if (cleanName.equals(normalizeVisitorName(rej))) {
                 return true;
             }
         }
@@ -608,7 +604,7 @@ public class VisitorsMacro {
         if (client.level == null || client.player == null)
             return null;
 
-        String target = stripColors(visitorName).toLowerCase().trim();
+        String target = normalizeVisitorName(visitorName);
 
         // Look for armor stands with matching name (visitor NPCs have name tags)
         Entity best = null;
@@ -617,9 +613,9 @@ public class VisitorsMacro {
         for (Entity entity : client.level.entitiesForRendering()) {
             if (entity == client.player)
                 continue;
-            String entityName = stripColors(entity.getName().getString()).toLowerCase().trim();
+            String entityName = normalizeVisitorName(entity.getName().getString());
 
-            if (entityName.contains(target) || target.contains(entityName)) {
+            if (entityName.equals(target)) {
                 double dist = entity.distanceToSqr(client.player);
                 // Prefer non-armor-stand entities (the actual NPC character)
                 // but accept armor stands if that's all we find
@@ -932,9 +928,7 @@ public class VisitorsMacro {
         }
         String title = normalizeVisitorName(screen.getTitle().getString());
         String target = normalizeVisitorName(visitorName);
-        return !title.equals(target)
-                && !title.startsWith(target)
-                && !target.startsWith(title);
+        return !title.equals(target);
     }
 
     private static List<ItemRequirement> readRequirements(Minecraft client) {
