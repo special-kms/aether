@@ -605,6 +605,9 @@ public final class DiscordRemoteControlManager implements WebSocket.Listener {
         if (id.isBlank() || token.isBlank()) {
             return;
         }
+        if (!Objects.equals(channelId, config.channelId())) {
+            return;
+        }
 
         JsonObject data = interaction.has("data") && interaction.get("data").isJsonObject()
                 ? interaction.getAsJsonObject("data")
