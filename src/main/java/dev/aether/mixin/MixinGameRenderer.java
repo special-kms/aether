@@ -32,6 +32,7 @@ public class MixinGameRenderer {
             mainGUI.renderAfterGameRenderer(deltaTracker.getGameTimeDeltaTicks());
         }
         AetherBootstrapHooks.renderFailsafeColourFlash();
+        AetherBootstrapHooks.captureClipFrame();
     }
 
     @Inject(method = "renderItemInHand", at = @At("HEAD"), cancellable = true)

@@ -703,6 +703,10 @@ public final class AetherConfig {
         // -- HUD POSITIONS ---------------------------------------------------------
         public static final BooleanEntry CUSTOM_UI_ENABLED = Config.bool("customUiEnabled", false);
         public static final BooleanEntry STREAMER_MODE = Config.bool("streamerMode", false);
+        public static final BooleanEntry CLIPS_ENABLED = Config.bool("clipsEnabled", false);
+        public static final BooleanEntry CLIPS_AUTO_FAILSAFE = Config.bool("clipsAutoFailsafe", true);
+        public static final IntEntry CLIPS_FPS = Config.integer("clipsFps", 30).range(15, 60);
+        public static final StringEntry CLIPS_FFMPEG_PATH = Config.string("clipsFfmpegPath", "ffmpeg");
 
         public static final IntEntry HUD_THEME = Config.integer("hudTheme", 2).range(0, 3);
         public static final IntEntry HUD_X = Config.integer("hudX", 410);

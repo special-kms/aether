@@ -20,6 +20,7 @@ public final class AetherKeybindRegistry {
     private static KeyMapping freelookKey;
     private static KeyMapping pipKey;
     private static KeyMapping ungrabMouseKey;
+    private static KeyMapping clipKey;
     private static boolean registered;
 
     private AetherKeybindRegistry() {
@@ -49,6 +50,8 @@ public final class AetherKeybindRegistry {
                     .registerKeyMapping(new KeyMapping("key.aether.pip", GLFW.GLFW_KEY_P, category));
             ungrabMouseKey = KeyMappingHelper
                     .registerKeyMapping(new KeyMapping("key.aether.ungrab_mouse", GLFW.GLFW_KEY_U, category));
+            clipKey = KeyMappingHelper
+                    .registerKeyMapping(new KeyMapping("key.aether.save_clip", GLFW.GLFW_KEY_F8, category));
         } catch (IllegalStateException ex) {
             // External feature jars can initialize after options are already built; reuse existing mappings if present.
             macroToggleKey = resolveExistingOrDetached("key.aether.start_script", GLFW.GLFW_KEY_K, category);
@@ -59,6 +62,7 @@ public final class AetherKeybindRegistry {
             freelookKey = resolveExistingOrDetached("key.aether.freelook", GLFW.GLFW_KEY_LEFT_ALT, category);
             pipKey = resolveExistingOrDetached("key.aether.pip", GLFW.GLFW_KEY_P, category);
             ungrabMouseKey = resolveExistingOrDetached("key.aether.ungrab_mouse", GLFW.GLFW_KEY_U, category);
+            clipKey = resolveExistingOrDetached("key.aether.save_clip", GLFW.GLFW_KEY_F8, category);
         }
         registered = true;
     }
@@ -163,6 +167,11 @@ public final class AetherKeybindRegistry {
         return ungrabMouseKey;
     }
 
+    public static KeyMapping getClipKey() {
+        register();
+        return clipKey;
+    }
+
     public static List<RegisteredKeybind> getRegisteredKeybinds() {
         register();
         return List.of(
@@ -173,7 +182,8 @@ public final class AetherKeybindRegistry {
                 new RegisteredKeybind("Freecam Teleport To Player", "Snaps the observer back to the real player", getFreecamTeleportToPlayerKey()),
                 new RegisteredKeybind("Freelook (hold)", "Orbit the camera while the player keeps facing forward", getFreelookKey()),
                 new RegisteredKeybind("Toggle PiP", "Opens or closes the picture-in-picture window", getPipKey()),
-                new RegisteredKeybind("Toggle Ungrab Mouse", "Releases or restores the mouse cursor", getUngrabMouseKey())
+                new RegisteredKeybind("Toggle Ungrab Mouse", "Releases or restores the mouse cursor", getUngrabMouseKey()),
+                new RegisteredKeybind("Save Evidence Clip", "Saves the buffered gameplay around this moment", getClipKey())
         );
     }
 

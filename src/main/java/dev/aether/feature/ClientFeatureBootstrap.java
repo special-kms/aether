@@ -10,6 +10,7 @@ import dev.aether.hud.HudRegistry;
 import dev.aether.macro.MacroStateManager;
 import dev.aether.macro.MacroWorkerThread;
 import dev.aether.macro.ReconnectScheduler;
+import dev.aether.modules.clips.ClipManager;
 import dev.aether.modules.failsafe.FailsafeSoundManager;
 import dev.aether.modules.misc.AutoCarnivalManager;
 import dev.aether.modules.pathfinding.debug.PathVisualizer;
@@ -47,6 +48,7 @@ public final class ClientFeatureBootstrap {
         ProfitManager.loadLifetime();
         ProfitManager.loadDaily();
         MacroStateManager.syncFromConfig();
+        ClipManager.syncFromConfig();
         AutoCarnivalManager.syncFromConfig(Minecraft.getInstance());
         ReconnectScheduler.clearState();
         HudRegistry.register();
@@ -92,6 +94,7 @@ public final class ClientFeatureBootstrap {
         // un-committed time from being lost on exit.
         dev.aether.modules.session.DailyFarmTimeTracker.persistNow();
         PerformanceModeManager.stop(Minecraft.getInstance());
+        ClipManager.stop();
         NotificationManager.clearAll();
         HudRegistry.reset();
         PathVisualizer.clear();
@@ -104,6 +107,7 @@ public final class ClientFeatureBootstrap {
     public static synchronized void onConfigProfileLoaded(File profileFile) {
         FailsafeSoundManager.refresh();
         MacroStateManager.syncFromConfig();
+        ClipManager.syncFromConfig();
         AutoCarnivalManager.syncFromConfig(Minecraft.getInstance());
 
         Minecraft client = Minecraft.getInstance();

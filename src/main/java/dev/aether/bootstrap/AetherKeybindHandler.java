@@ -7,6 +7,7 @@ import dev.aether.macro.FarmingMacroManager;
 import dev.aether.macro.MacroState;
 import dev.aether.macro.MacroStateManager;
 import dev.aether.modules.CropFeverManager;
+import dev.aether.modules.clips.ClipManager;
 import dev.aether.modules.farming.SqueakyMousematManager;
 import dev.aether.modules.gear.GearManager;
 import dev.aether.modules.inventorymanager.AutoSellManager;
@@ -61,6 +62,10 @@ public final class AetherKeybindHandler {
 
             while (AetherKeybindRegistry.getUngrabMouseKey().consumeClick()) {
                 UngrabMouseManager.toggle();
+            }
+
+            while (AetherKeybindRegistry.getClipKey().consumeClick()) {
+                ClipManager.triggerManual();
             }
         });
     }

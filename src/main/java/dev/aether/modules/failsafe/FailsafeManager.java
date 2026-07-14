@@ -1,5 +1,7 @@
 package dev.aether.modules.failsafe;
 
+import dev.aether.modules.clips.ClipManager;
+
 import dev.aether.config.AetherConfig;
 import dev.aether.macro.MacroStateManager;
 import dev.aether.modules.discord.DiscordRemoteControlManager;
@@ -259,6 +261,7 @@ public final class FailsafeManager {
     }
 
     public static void onFailsafeTriggered(FailsafeAction action) {
+        ClipManager.onFailsafeTriggered();
         FailsafeColourFlashManager.trigger();
         FailsafeSoundManager.playConfiguredSound(action);
         FailsafeWindowFocusManager.bringWindowToFront();

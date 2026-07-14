@@ -23,6 +23,7 @@ dev.aether.ui.FreecamVisualsRegistryProvider
 dev.aether.ui.FreelookVisualsRegistryProvider
 dev.aether.ui.PipVisualsRegistryProvider
 dev.aether.ui.UngrabMouseVisualsRegistryProvider
+dev.aether.ui.ClipsVisualsRegistryProvider
 dev.aether.ui.ProfitCalculatorRegistryProvider
 dev.aether.ui.FunVisualsRegistryProvider
 dev.aether.ui.GeneralFailsafesRegistryProvider

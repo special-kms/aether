@@ -7,6 +7,7 @@ import dev.aether.hud.HudRegistry;
 import dev.aether.bootstrap.AetherBootstrapHooks;
 import dev.aether.macro.MacroStateManager;
 import dev.aether.macro.ReconnectScheduler;
+import dev.aether.modules.clips.ClipManager;
 import dev.aether.modules.failsafe.FailsafeColourFlashManager;
 import dev.aether.modules.failsafe.FailsafeManager;
 import dev.aether.modules.farming.UngrabMouse;
@@ -120,6 +121,11 @@ public final class LiveAetherBootstrapHooks implements AetherBootstrapHooks.Feat
     @Override
     public void renderFailsafeColourFlash() {
         FailsafeColourFlashManager.render();
+    }
+
+    @Override
+    public void captureClipFrame() {
+        ClipManager.captureFrame();
     }
 
     @Override
