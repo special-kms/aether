@@ -49,7 +49,6 @@ final class PestDestroyerRuntime {
 
     int etherwarpEntryAttempts = 0;
     long etherwarpEntryClickAt = 0L;
-    long etherwarpEntryGraceUntil = 0L;
     long etherwarpEntryRetryAt = 0L;
     boolean etherwarpEntryClicked = false;
     Vec3 etherwarpEntryPredicted = null;
@@ -67,7 +66,6 @@ final class PestDestroyerRuntime {
 
     void resetEtherwarpEntry() {
         etherwarpEntryClickAt = 0L;
-        etherwarpEntryGraceUntil = 0L;
         etherwarpEntryRetryAt = 0L;
         etherwarpEntryClicked = false;
         etherwarpEntryPredicted = null;

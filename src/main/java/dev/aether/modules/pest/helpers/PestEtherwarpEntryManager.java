@@ -27,8 +27,8 @@ final class PestEtherwarpEntryManager {
 
     static final int MAX_ATTEMPTS = 2;
 
-    private static final long POST_CLICK_GRACE_MS = 250L;
     private static final double LANDING_TOLERANCE = 1.5;
+    private static final double POSITION_CHANGE_EPSILON = 0.1;
     private static final long PLOT_TP_COOLDOWN_GUARD_MS = 1200L;
     private static final long ENTRY_TIMEOUT_MS = 8000L;
 
@@ -79,7 +79,7 @@ final class PestEtherwarpEntryManager {
             return;
         }
 
-        if (now < runtime.etherwarpEntryGraceUntil) {
+        if (!hasPositionChangedSinceClick(client, runtime)) {
             return;
         }
 
@@ -121,7 +121,6 @@ final class PestEtherwarpEntryManager {
         runtime.etherwarpEntryPreY = client.player.getY();
         runtime.etherwarpEntryPreZ = client.player.getZ();
         runtime.etherwarpEntryClicked = true;
-        runtime.etherwarpEntryGraceUntil = now + POST_CLICK_GRACE_MS;
 
         ClientUtils.performUseClick();
         ClientUtils.sendDebugMessage("[Discoless] Etherwarp fired (attempt "
@@ -152,6 +151,10 @@ final class PestEtherwarpEntryManager {
         Vec3 predicted = runtime.etherwarpEntryPredicted;
         return predicted != null
                 && client.player.position().distanceTo(predicted) <= LANDING_TOLERANCE;
+    }
+
+    private static boolean hasPositionChangedSinceClick(Minecraft client, PestDestroyerRuntime runtime) {
+        return movedDistance(client, runtime) > POSITION_CHANGE_EPSILON;
     }
 
     private static double movedDistance(Minecraft client, PestDestroyerRuntime runtime) {
