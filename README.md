@@ -27,6 +27,8 @@
 - **visual** - nick hider, purse spoofer, sawdust spoofer
 - **failsafes** - too many failsafes to list
 
+- **aditional features in this fork** - gameplay clips (more to come probably)
+
 ---
 
 ## how to install
