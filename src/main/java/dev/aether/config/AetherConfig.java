@@ -705,7 +705,9 @@ public final class AetherConfig {
         public static final BooleanEntry STREAMER_MODE = Config.bool("streamerMode", false);
         public static final BooleanEntry CLIPS_ENABLED = Config.bool("clipsEnabled", false);
         public static final BooleanEntry CLIPS_AUTO_FAILSAFE = Config.bool("clipsAutoFailsafe", true);
+        public static final BooleanEntry CLIPS_INSTANT_MANUAL_SAVE = Config.bool("clipsInstantManualSave", false);
         public static final IntEntry CLIPS_FPS = Config.integer("clipsFps", 30).range(15, 60);
+        public static final StringEntry CLIPS_RESOLUTION = Config.string("clipsResolution", "720p");
         public static final StringEntry CLIPS_FFMPEG_PATH = Config.string("clipsFfmpegPath", "ffmpeg");
 
         public static final IntEntry HUD_THEME = Config.integer("hudTheme", 2).range(0, 3);

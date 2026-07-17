@@ -2,7 +2,6 @@ package dev.aether.modules.clips;
 
 import dev.aether.Aether;
 import dev.aether.notification.NotificationManager;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 
 import java.io.BufferedWriter;
@@ -50,8 +49,8 @@ final class ClipFinalizer implements AutoCloseable {
                     break;
                 }
             } catch (Exception e) {
-                Aether.LOGGER.error("Evidence clip finalization failed", e);
-                notifyClient(false, "Evidence clip failed", "FFmpeg could not finalize the clip.");
+                Aether.LOGGER.error("Gameplay clip finalization failed", e);
+                notifyClient(false, "Gameplay clip failed");
             } finally {
                 if (segments != null) {
                     segments.forEach(ClipEncoder.Segment::release);
@@ -65,12 +64,12 @@ final class ClipFinalizer implements AutoCloseable {
     }
 
     private void finalizeClip(List<ClipEncoder.Segment> segments) throws IOException, InterruptedException {
-        Path outputDirectory = FabricLoader.getInstance().getGameDir().resolve("aether-clips");
+        Path outputDirectory = ClipManager.getClipsDirectory();
         Files.createDirectories(outputDirectory);
         Path manifest = Files.createTempFile(spoolDirectory, "concat-", ".txt");
         try {
             writeManifest(manifest, segments);
-            Path output = outputDirectory.resolve("evidence-" + FILE_TIME.format(LocalDateTime.now())
+            Path output = outputDirectory.resolve("clip-" + FILE_TIME.format(LocalDateTime.now())
                     + "-" + UUID.randomUUID().toString().substring(0, 8) + ".mp4");
             process = new ProcessBuilder(ffmpegPath, "-hide_banner", "-loglevel", "error",
                     "-y", "-f", "concat", "-safe", "0", "-i", manifest.toString(), "-c", "copy", output.toString())
@@ -81,10 +80,10 @@ final class ClipFinalizer implements AutoCloseable {
                 process.destroyForcibly();
             }
             if (exit == 0 && Files.isRegularFile(output) && Files.size(output) > 0) {
-                notifyClient(true, "Evidence clip saved", output.getFileName().toString());
+                notifyClient(true, "Gameplay clip saved");
             } else {
                 Files.deleteIfExists(output);
-                notifyClient(false, "Evidence clip failed", "FFmpeg could not finalize the clip.");
+                notifyClient(false, "Gameplay clip failed");
             }
         } finally {
             Process active = process;
@@ -106,14 +105,14 @@ final class ClipFinalizer implements AutoCloseable {
         }
     }
 
-    private static void notifyClient(boolean success, String title, String message) {
+    private static void notifyClient(boolean success, String title) {
         Minecraft client = Minecraft.getInstance();
         if (client != null) {
             client.execute(() -> {
                 if (success) {
-                    NotificationManager.success(title, message);
+                    NotificationManager.success(title);
                 } else {
-                    NotificationManager.error(title, message);
+                    NotificationManager.error(title);
                 }
             });
         }

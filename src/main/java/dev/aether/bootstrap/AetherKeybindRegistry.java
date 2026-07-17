@@ -183,7 +183,7 @@ public final class AetherKeybindRegistry {
                 new RegisteredKeybind("Freelook (hold)", "Orbit the camera while the player keeps facing forward", getFreelookKey()),
                 new RegisteredKeybind("Toggle PiP", "Opens or closes the picture-in-picture window", getPipKey()),
                 new RegisteredKeybind("Toggle Ungrab Mouse", "Releases or restores the mouse cursor", getUngrabMouseKey()),
-                new RegisteredKeybind("Save Evidence Clip", "Saves the buffered gameplay around this moment", getClipKey())
+                new RegisteredKeybind("Save Gameplay Clip", "Saves the buffered gameplay around this moment", getClipKey())
         );
     }
 

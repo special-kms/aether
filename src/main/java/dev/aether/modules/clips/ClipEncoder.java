@@ -1,7 +1,6 @@
 package dev.aether.modules.clips;
 
 import dev.aether.Aether;
-import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -16,13 +15,11 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 final class ClipEncoder implements AutoCloseable {
-    static final int WIDTH = 1280;
-    static final int HEIGHT = 720;
-    static final int FRAME_BYTES = WIDTH * HEIGHT * 4;
     private static final long PRE_ROLL_NANOS = TimeUnit.SECONDS.toNanos(30);
-    private static final long POST_ROLL_NANOS = TimeUnit.SECONDS.toNanos(10);
+    static final long POST_ROLL_NANOS = TimeUnit.SECONDS.toNanos(10);
     private static final long MAX_SPOOL_NANOS = TimeUnit.SECONDS.toNanos(42);
     private static final int BUFFER_COUNT = 6;
 
@@ -34,30 +31,48 @@ final class ClipEncoder implements AutoCloseable {
     private final Path spoolDirectory;
     private final String ffmpegPath;
     private final int fps;
+    private final int width;
+    private final int height;
+    private final int frameBytes;
+    private final AtomicReference<TriggerRequest> pendingRequest = new AtomicReference<>();
     private volatile boolean running = true;
     private volatile boolean accepting = true;
-    private volatile boolean triggerRequested;
     private Process process;
     private OutputStream input;
     private long segmentStartNanos;
     private long segmentEndNanos;
     private long nextOutputNanos;
-    private long triggerNanos;
+    private TriggerRequest activeRequest;
     private int segmentFrames;
     private long segmentSequence;
     private byte[] lastFrame;
     private Path currentSegment;
 
-    ClipEncoder(int fps, String ffmpegPath) {
+    ClipEncoder(int fps, String ffmpegPath, ClipResolution resolution) {
         this.fps = fps;
         this.ffmpegPath = ffmpegPath;
-        spoolDirectory = FabricLoader.getInstance().getGameDir().resolve("aether-clips").resolve("spool")
+        width = resolution.width();
+        height = resolution.height();
+        frameBytes = width * height * 4;
+        spoolDirectory = ClipManager.getClipsDirectory().resolve("spool")
                 .resolve(UUID.randomUUID().toString());
         finalizer = new ClipFinalizer(ffmpegPath, spoolDirectory);
         for (int i = 0; i < BUFFER_COUNT; i++) {
-            available.add(new FrameBuffer(ByteBuffer.allocateDirect(FRAME_BYTES)));
+            available.add(new FrameBuffer(ByteBuffer.allocateDirect(frameBytes)));
         }
         thread = Thread.ofPlatform().name("Aether Clip Encoder").daemon(true).start(this::run);
+    }
+
+    int width() {
+        return width;
+    }
+
+    int height() {
+        return height;
+    }
+
+    int frameBytes() {
+        return frameBytes;
     }
 
     FrameBuffer acquireBuffer() {
@@ -66,7 +81,7 @@ final class ClipEncoder implements AutoCloseable {
 
     void submit(FrameBuffer buffer, long capturedNanos) {
         buffer.capturedNanos = capturedNanos;
-        buffer.data.position(0).limit(FRAME_BYTES);
+        buffer.data.position(0).limit(frameBytes);
         if (!accepting || !frames.offer(buffer)) {
             release(buffer);
         }
@@ -77,24 +92,25 @@ final class ClipEncoder implements AutoCloseable {
         available.offer(buffer);
     }
 
-    void trigger() {
-        if (triggerNanos == 0L) {
-            triggerRequested = true;
-        }
+    void trigger(TriggerRequest request) {
+        pendingRequest.accumulateAndGet(request, TriggerRequest::merge);
     }
 
     private void run() {
         try {
             while (running || !frames.isEmpty()) {
+                applyPendingRequests();
+                completeTriggerIfReady(System.nanoTime());
                 FrameBuffer frame = frames.poll(100, TimeUnit.MILLISECONDS);
                 if (frame != null) {
                     encodePaced(frame);
                 }
-                applyTrigger();
+                applyPendingRequests();
                 completeTriggerIfReady(System.nanoTime());
             }
+            applyPendingRequests();
             completeCurrentSegment();
-            completeTriggerIfReady(Long.MAX_VALUE);
+            completeTriggerIfReady(true, System.nanoTime());
         } catch (InterruptedException ignored) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
@@ -133,7 +149,7 @@ final class ClipEncoder implements AutoCloseable {
                 nextOutputNanos = outputNanos + interval;
             }
             frame.data.position(0);
-            frame.data.get(lastFrame, 0, FRAME_BYTES);
+            frame.data.get(lastFrame, 0, frameBytes);
             long outputNanos = Math.max(nextOutputNanos, frame.capturedNanos);
             if (input == null) {
                 startSegment(outputNanos);
@@ -158,8 +174,8 @@ final class ClipEncoder implements AutoCloseable {
         currentSegment = spoolDirectory.resolve(String.format("segment-%016d.mp4", segmentSequence++));
         process = new ProcessBuilder(
                 ffmpegPath, "-hide_banner", "-loglevel", "error", "-y",
-                "-f", "rawvideo", "-pixel_format", "rgba", "-video_size", WIDTH + "x" + HEIGHT,
-                "-framerate", Integer.toString(fps), "-i", "pipe:0", "-vf", "vflip",
+                "-f", "rawvideo", "-pixel_format", "rgba", "-video_size", width + "x" + height,
+                "-framerate", Integer.toString(fps), "-i", "pipe:0", "-vf", "vflip,format=yuv420p",
                 "-an", "-c:v", "libx264",
                 "-preset", "ultrafast", "-crf", "23", "-g", Integer.toString(fps),
                 "-keyint_min", Integer.toString(fps), "-sc_threshold", "0", currentSegment.toString())
@@ -170,7 +186,7 @@ final class ClipEncoder implements AutoCloseable {
         segmentEndNanos = timestampNanos;
         nextOutputNanos = timestampNanos;
         if (lastFrame == null) {
-            lastFrame = new byte[FRAME_BYTES];
+            lastFrame = new byte[frameBytes];
         }
     }
 
@@ -217,35 +233,41 @@ final class ClipEncoder implements AutoCloseable {
         return exit;
     }
 
-    private void applyTrigger() {
-        if (!triggerRequested || triggerNanos != 0L) {
-            return;
+    private void applyPendingRequests() {
+        TriggerRequest request = pendingRequest.getAndSet(null);
+        if (request != null) {
+            activeRequest = TriggerRequest.merge(activeRequest, request);
         }
-        triggerRequested = false;
-        triggerNanos = System.nanoTime();
     }
 
     private void completeTriggerIfReady(long now) throws IOException {
-        if (triggerNanos == 0L || now < triggerNanos + POST_ROLL_NANOS) {
+        completeTriggerIfReady(false, now);
+    }
+
+    private void completeTriggerIfReady(boolean force, long now) throws IOException {
+        TriggerRequest request = activeRequest;
+        if (request == null || (!force && now < request.throughNanos())) {
             return;
         }
         completeCurrentSegment();
-        long from = triggerNanos - PRE_ROLL_NANOS;
-        long through = triggerNanos + POST_ROLL_NANOS;
+        long from = saturatingSubtract(request.requestedAtNanos(), PRE_ROLL_NANOS);
         List<Segment> snapshot = spool.stream()
-                .filter(segment -> segment.endNanos() >= from && segment.startNanos() <= through)
+                .filter(segment -> segment.endNanos() >= from && segment.startNanos() <= request.throughNanos())
                 .toList();
         snapshot.forEach(Segment::retain);
         if (!snapshot.isEmpty() && !finalizer.submit(snapshot)) {
             snapshot.forEach(Segment::release);
         }
-        triggerNanos = 0L;
-        triggerRequested = false;
+        activeRequest = null;
         trimSpool(now);
     }
 
+    private static long saturatingSubtract(long value, long decrement) {
+        return value < Long.MIN_VALUE + decrement ? Long.MIN_VALUE : value - decrement;
+    }
+
     private void trimSpool(long now) {
-        long keepAfter = now - MAX_SPOOL_NANOS;
+        long keepAfter = saturatingSubtract(now, MAX_SPOOL_NANOS);
         while (!spool.isEmpty() && spool.peekFirst().endNanos() < keepAfter) {
             spool.removeFirst().release();
         }
@@ -308,6 +330,21 @@ final class ClipEncoder implements AutoCloseable {
                 Files.deleteIfExists(incompleteSegment);
             }
         } catch (IOException ignored) {
+        }
+    }
+
+    record TriggerRequest(long requestedAtNanos, long throughNanos) {
+        static TriggerRequest merge(TriggerRequest first, TriggerRequest second) {
+            if (first == null) {
+                return second;
+            }
+            if (second == null) {
+                return first;
+            }
+            return new TriggerRequest(
+                    Math.min(first.requestedAtNanos, second.requestedAtNanos),
+                    Math.max(first.throughNanos, second.throughNanos)
+            );
         }
     }
 
